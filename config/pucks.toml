@@ -1,0 +1,16 @@
+[mainbrain]
+http_api_server_addr = "0.0.0.0:8396"
+model_server_addr = "127.0.0.1:8397"  #serves bruck's tracking results to programs on mac
+output_base_dirname = "~/BRAID-DATA"
+
+[trigger]
+trigger_type = "DeviceTimestamp" 
+
+
+[[cameras]]
+name = "cam0"
+start_backend = "remote"
+
+[[cameras]]
+name = "cam1"
+start_backend = "remote"

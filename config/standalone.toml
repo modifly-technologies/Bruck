@@ -1,0 +1,27 @@
+
+#Web interface: available on your Mac at 127.0.0.1:8396.
+#Tracking output: served on port 8397 for future integrations.
+#Data location: recordings go in ~/BRAID-DATA.
+#Expected cameras: two remote cameras named cam0 and cam1. Bruck waits for them to connect.
+#Timing: temporary FakeSync settings assuming 30 FPS. This does not synchronize physical cameras.
+
+#Created to verify Bruck starts independently from its new Khepos location. Seeing the interface and disconnected cameras confirms that startup works without the hardware.
+
+
+
+[mainbrain]
+http_api_server_addr = "127.0.0.1:8396"
+model_server_addr = "127.0.0.1:8397"
+output_base_dirname = "~/BRAID-DATA"
+
+[trigger]
+trigger_type = "FakeSync"
+framerate = 30.0
+
+[[cameras]]
+name = "cam0"
+start_backend = "remote"
+
+[[cameras]]
+name = "cam1"
+start_backend = "remote"

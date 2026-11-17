@@ -1,0 +1,2 @@
+Need to Use april tags using april tag detector by stand cam then make csv file id x y z 
+and upload to https://strawlab.org/braid-april-cal-webapp/
