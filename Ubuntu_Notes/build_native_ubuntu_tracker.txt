@@ -1,0 +1,31 @@
+cd "$HOME/Bruck" &&
+env -u LD_LIBRARY_PATH -u NO_COLOR \
+  cargo build --locked --release --target x86_64-unknown-linux-gnu \
+  -p braid-run --bin braid-run
+
+  verify braid runs: 
+
+  ./target/x86_64-unknown-linux-gnu/release/braid-run --help
+
+notes:
+    The green circle marks a point reported by a detector. It doesn’t identify your hand, so it can sit over a background feature.
+    
+    The camera UI shows a capture-rate estimate based on host timestamps for this webcam. It doesn’t count frames drawn by the browser.
+
+    Even with one preview open, the MP157 is close to CPU saturation. It had 0–3.8% idle, and strand-cam used up to 176% CPU across its 
+    two cores. That makes preview processing a likely contributor to the lag.
+
+    Closing the preview gave the MP157 about 36% idle CPU in both follow-up samples, compared with 0–4% idle with the preview open. 
+    The preview itself adds substantial load.
+
+Tasks: 
+    The remaining tests depend on what you tackle next:
+
+    Repeatable startup: If you’ll use this setup regularly, do one clean restart to verify the temporary config, SSH tunnels, and UDP relay 
+    come back together. The current session needed a manual retry of the frame-offset callback.
+
+    Performance: Sustained 30 FPS and low preview latency are still unverified. Keep the preview closed when you only need camera data.
+
+    Tracking: Multi-camera 3D tracking, extrinsic calibration, and DeviceTimestamp synchronization are separate milestones. This test 
+    used one camera and host timing. It verified Braid in WSL, while the Mac/Khepos connection remains untested.
+    

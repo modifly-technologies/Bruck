@@ -1,0 +1,148 @@
+BRUCK TEST REPORT
+STM32MP157-DK1 + one USB camera + Braid on Ubuntu 22.04.5 / WSL2
+
+RESULT
+The one-camera integration test passed. Strand Camera ran on the MP157,
+registered as cam0 with Braid in WSL, delivered camera data, and showed
+a live feed. The best tested setup was 640x400 MJPEG with 30 FPS requested.
+Sustained 30 FPS and low preview latency were not verified.
+
+
+1. BUILD AND DEPLOYMENT
+
+- The matching SDK was ST's STM32MP1 x86_64 Developer Package, ecosystem
+  release 4.0.0. The installer inside uses Yocto Kirkstone 4.0.1.
+  Archive:
+  SDK-x86_64-stm32mp1-openstlinux-5.15-yocto-kirkstone-mp1-v22.06.15.tar.xz
+- The SDK worked in WSL2. ROS Humble set LD_LIBRARY_PATH, which blocked
+  SDK initialization. Loading the SDK in a clean shell with that
+  variable unset resolved the issue.
+- The initial ARM build failed because the CUDA bindings expected
+  64-bit struct layouts. We excluded NVIDIA encoding from 32-bit ARM
+  builds and fixed two UFMF integer conversions.
+- The bundled web UI built with Trunk 0.21.14. Cargo dependencies and
+  Trunk's frontend tools had to be cached before the ARM build succeeded.
+- The resulting strand-cam binary was verified as 32-bit ARM hard-float
+  and ran on the board. It was deployed at /home/root/strand-cam.
+- braid-run built and ran natively as an x86_64 Linux binary in WSL.
+- The source fixes are on local branch stm32mp157-strand-cam, commit
+  3d62aca5. The eva branch stayed at a08a9c1a, matching origin/eva.
+  No branch was pushed.
+
+
+2. CAMERA CAPTURE AND PERFORMANCE
+
+- The camera exposes two video nodes with the same display name.
+  /dev/video0 advertised the capture modes. Strand Camera opened it
+  using --camera-name 0 and registered it using --camera-id cam0.
+- At 1280x800 MJPEG, the preview showed about 4-8 FPS. The MP157 had
+  0% idle CPU during sampling, and Strand Camera logged dropped frames
+  because its processing queue was full.
+- At 640x400 MJPEG, capture was much smoother. The UI reported about
+  26-38 FPS after reconnecting to Braid. That number is a capture-rate
+  estimate based on host timestamps. It does not measure browser
+  rendering or prove that the camera sustained 30 FPS.
+- In the same 640x400 camera session, the board showed 0-4% idle CPU
+  with the direct preview open and about 36% idle in follow-up samples
+  after closing it. Preview generation adds substantial load.
+- Braid's embedded preview targets 10 FPS in code. The direct camera
+  page felt faster, though Strand Camera still re-encodes its preview
+  frames as JPEG and sends them through the tunnel.
+- Disabling exposure auto priority and setting manual exposure to
+  9.1 ms made brightness changes less pronounced. The image still
+  changed while the FPS display appeared frozen, so the frozen number
+  alone did not establish a video stall.
+- A difference threshold of 25 gave better detections than 30 or 45
+  in the informal test. The points count is the number of detections.
+  A green marker does not mean the software identified a specific object.
+- Missing ffmpeg generated a warning. Capture and the web UI continued.
+  Recording was not tested.
+
+
+3. NETWORKING AND SYNCHRONIZATION
+
+- Direct connections from the MP157 to the Mac timed out. The Windows
+  port forward worked from Windows itself, but the MP157 still could
+  not reach it. WSL could reach the MP157 over SSH, so the successful
+  test used SSH tunnels and a UDP relay.
+- Board to Braid HTTP:
+  MP157 127.0.0.1:18396 -> SSH reverse tunnel -> WSL 127.0.0.1:8396.
+  A tokenless request returned HTTP 401, confirming the path worked.
+- Board to Braid camera data:
+  UDP port 47912 was relayed over SSH. tcpdump showed packets arriving
+  in WSL, and Braid's logs showed it processing cam0 frames.
+- Braid back to the camera:
+  WSL 127.0.0.1:36055 -> SSH local forward -> MP157 127.0.0.1:36055.
+  The camera page returned HTTP 200. The frame-offset callback had
+  failed before this tunnel was open. Resending it returned HTTP 200.
+- Braid registered cam0 and synchronized it using FakeSync. The final
+  test used a temporary one-camera TOML with FakeSync at 30 FPS and
+  fixed UDP and camera HTTP ports. The checked-in config/pucks.toml
+  still defines two cameras and selects DeviceTimestamp.
+- Port 8396 served the Braid web UI and camera API. Port 8397 was the
+  tracking-results server, bound to WSL loopback in this test. The Mac
+  and Khepos were not connected to that results server.
+
+
+4. WHAT TO DO IF SOMETHING FAILS
+
+- SDK refuses to load:
+  In WSL, use a clean shell with LD_LIBRARY_PATH unset before sourcing
+  the STM32 SDK.
+
+- ARM build fails in CUDA:
+  Check that the WSL checkout contains commit 3d62aca5 on
+  stm32mp157-strand-cam. The original eva branch lacks the ARM fixes.
+
+- Trunk fails during the bundled frontend build:
+  Check for Trunk 0.21.x and the wasm32-unknown-unknown Rust target.
+  Fetch the locked Cargo dependencies and build the frontend once in
+  the interactive WSL terminal so Trunk can cache its tools.
+
+- MP157 gets HTTP 000 or a timeout:
+  Check that Braid and the reverse SSH tunnel are running. Test the
+  Braid API from the board at http://127.0.0.1:18396/.
+  HTTP 401 means Braid is reachable and the request needs authentication.
+
+- Camera startup reports missing authentication:
+  Use the tokenized URL from the current Braid startup log. On the
+  MP157, use 127.0.0.1:18396 as the address and preserve the token.
+  Keep tokens out of shared logs.
+
+- cam0 registers but Braid receives no frames:
+  Check the UDP relay and confirm its port matches Braid's UDP port.
+  The final test pinned both to 47912.
+
+- Frame-offset callback says Connection refused:
+  Check the return HTTP tunnel on port 36055. Have it open before
+  starting cam0 so the first callback can reach the camera.
+
+- Preview lags or frames drop:
+  Start at 640x400 MJPEG with 30 FPS requested. Keep one preview open
+  at a time. Close the preview when only camera data is needed.
+  If smooth preview becomes a requirement, benchmark a smaller preview
+  image while keeping detection at 640x400.
+
+- The FPS number freezes but the picture still responds:
+  Check visible motion and the frame number separately. Use a timed
+  measurement to verify actual capture or display rate.
+
+
+5. REMAINING TESTS
+
+- Repeatability: Do one clean restart with the one-camera config and
+  all three network paths in place. Confirm that the frame-offset
+  callback succeeds without a manual retry.
+- Performance: Measure sustained capture rate, dropped frames, and
+  end-to-end preview latency at 640x400 under normal use.
+- Integration: Verify the Mac/Khepos connection to Braid's results
+  server if Khepos remains on the Mac.
+- Tracking: Validate DeviceTimestamp and extrinsic calibration
+  separately. Add a second calibrated camera before testing 3D
+  tracking with the current tracker configuration.
+
+The one-camera build, deployment, and live connection are complete
+enough to move on to other project work.
+
+-----------------------------------------------------------------------------------
+

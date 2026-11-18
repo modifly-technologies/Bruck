@@ -1,0 +1,13 @@
+I’d keep Bruck’s UI for setup and debugging. If you want a cleaner interface
+ for day-to-day use, put the controls and status you need in Khepos. Keep Bruck’s 
+ camera page available when you need to adjust exposure or detection settings.
+
+A custom UI could make the workflow simpler, but it would inherit the preview lag if 
+it uses the same video stream. In our test, the MP157 had only 0–4% idle CPU with one 
+preview open and about 36% idle after closing it. The board re-encodes preview frames 
+as JPEG, so changing the page alone leaves that work in place.
+
+If smoother video is the goal, improve the preview stream first. I’d test sending a 
+320×200 preview while keeping capture and detection at 640×400. If easier operation 
+is the goal, a small Khepos panel showing camera connection, synchronization, and
+ detection status would be more useful than rebuilding the entire Bruck UI.
