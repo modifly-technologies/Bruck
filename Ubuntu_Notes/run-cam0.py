@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the one-camera Bruck setup from Ubuntu/WSL."""
 
-## cd "$HOME/Bruck" && ./Ubuntu_Notes/run-cam0.py
+###  cd "$HOME/Bruck" && ./Ubuntu_Notes/run-cam0.py
 
 import argparse
 from contextlib import ExitStack

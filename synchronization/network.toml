@@ -1,4 +1,4 @@
 # file added by eva
-# Records the synchronization plan without enabling clock or exposure synchronization.
+#  Records the synchronization plan without enabling clock or exposure synchronization.
 
 # Sync the MP157 clocks over Ethernet or the network for camera exposure and timestamps.

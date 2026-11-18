@@ -1,5 +1,5 @@
 
-# Bruck setup: STM32MP157-DK1 camera and Braid in WSL2
+#  Bruck setup: STM32MP157-DK1 camera and Braid in WSL2
 
 This guide runs strand-cam on an STM32MP157-DK1 and braid-run on Ubuntu 22.04.5 x86_64 under WSL2. It uses one USB camera, registered as cam0, at 640×400 MJPEG with 30 FPS requested.
 
