@@ -31,6 +31,7 @@ use ci2_async::AsyncCamera;
 use fmf::FMFWriter;
 use formats::PixFmt;
 use strand_bui_backend_session_types::{AccessToken, BuiServerAddrInfo, ConnectionKey};
+#[cfg(not(target_arch = "arm"))]
 use strand_dynamic_frame::DynamicFrame;
 
 use video_streaming::AnnotatedFrame;
@@ -760,6 +761,7 @@ impl Default for StrandCamArgs {
     }
 }
 
+#[cfg(not(target_arch = "arm"))]
 fn test_nvenc_save(frame: DynamicFrame) -> Result<bool> {
     let cfg = Mp4RecordingConfig {
         codec: Mp4Codec::H264NvEnc(NvidiaH264Options {
@@ -2204,6 +2206,9 @@ where
     #[cfg(not(feature = "flydratrax"))]
     let led_program_config = LedProgramConfig::default();
 
+    #[cfg(target_arch = "arm")]
+    let cuda_devices: Vec<String> = Vec::new();
+    #[cfg(not(target_arch = "arm"))]
     let cuda_devices = match nvenc::Dynlibs::new() {
         Ok(libs) => {
             match nvenc::NvEnc::new(&libs) {
@@ -2283,6 +2288,9 @@ where
         }
     };
 
+    #[cfg(target_arch = "arm")]
+    let is_nvenc_functioning = false;
+    #[cfg(not(target_arch = "arm"))]
     let is_nvenc_functioning = test_nvenc_save(frame.image.borrow())?;
 
     let mp4_codec = match is_nvenc_functioning {

@@ -65,11 +65,11 @@ fn write_key<F: Write + Seek>(f: &mut F, key: &[u8]) -> UFMFResult<usize> {
 fn write_locs<F: Write + Seek>(f: &mut F, locs: &[u64]) -> UFMFResult<usize> {
     let mut pos = 0;
     let dtype_char = b'l';
-    let bytes_per_element = 8;
 
     pos += f.write(&[b'a', dtype_char])?;
 
-    let buf = structure!("<I").pack(cast::u32(locs.len() * bytes_per_element)?)?;
+    let byte_len = u32::try_from(std::mem::size_of_val(locs)).map_err(|_| cast::Error::Overflow)?;
+    let buf = structure!("<I").pack(byte_len)?;
     pos += f.write(&buf)?;
 
     for loc in locs {
@@ -83,11 +83,12 @@ fn write_locs<F: Write + Seek>(f: &mut F, locs: &[u64]) -> UFMFResult<usize> {
 fn write_timestamps<F: Write + Seek>(f: &mut F, timestamps: &[f64]) -> UFMFResult<usize> {
     let mut pos = 0;
     let dtype_char = b'd';
-    let bytes_per_element = 8;
 
     pos += f.write(&[b'a', dtype_char])?;
 
-    let buf = structure!("<I").pack(cast::u32(timestamps.len() * bytes_per_element)?)?;
+    let byte_len =
+        u32::try_from(std::mem::size_of_val(timestamps)).map_err(|_| cast::Error::Overflow)?;
+    let buf = structure!("<I").pack(byte_len)?;
     pos += f.write(&buf)?;
 
     for timestamp in timestamps {

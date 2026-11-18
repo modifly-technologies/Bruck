@@ -110,12 +110,11 @@ strand-bui-backend-session-types.workspace = true
 braid-config-data = { workspace = true, optional = true }
 camcal = { workspace = true, optional = true }
 strand-cam-bui-types.workspace = true
-mp4-writer = { workspace = true, features = ["openh264-encode", "nv-encode"] }
+mp4-writer = { workspace = true, features = ["openh264-encode"] }
 strand-cam-csv-config-types.workspace = true
 bg-movie-writer.workspace = true
 ffmpeg-writer.workspace = true
 strand-cam-pseudo-cal = { workspace = true, optional = true }
-nvenc.workspace = true
 ads-apriltag = { workspace = true, optional = true }
 braid-http-session.workspace = true
 strand-bui-backend-session.workspace = true
@@ -125,6 +124,10 @@ apriltag-detection-writer = { workspace = true, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 v4l = "0.14"
+
+[target.'cfg(not(target_arch = "arm"))'.dependencies]
+mp4-writer = { workspace = true, features = ["nv-encode"] }
+nvenc.workspace = true
 
 [build-dependencies]
 build-util.workspace = true

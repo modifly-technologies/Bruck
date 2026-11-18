@@ -114,15 +114,26 @@ impl MyFfmpegWriter {
 
 /// Create a RawWriter. Runs inside writer thread loop.
 fn create_writer<'a>(
-    libs_result: &'a std::result::Result<nvenc::Dynlibs, nvenc::NvEncError>,
+    #[cfg(not(target_arch = "arm"))] libs_result: &'a std::result::Result<
+        nvenc::Dynlibs,
+        nvenc::NvEncError,
+    >,
     recording_config: &strand_cam_remote_control::RecordingConfig,
     mp4_path: &'a Path,
 ) -> Result<RawWriter<'a, File>> {
     use strand_cam_remote_control::RecordingConfig::*;
     let raw: RawWriter<'_, File> = match &recording_config {
         Mp4(mp4_recording_config) => {
+            #[cfg(target_arch = "arm")]
+            if matches!(
+                mp4_recording_config.codec,
+                strand_cam_remote_control::Mp4Codec::H264NvEnc(_)
+            ) {
+                return Err(mp4_writer::Error::NoNvencCompiledError.into());
+            }
             let mp4_file = std::fs::File::create(mp4_path)?;
 
+            #[cfg(not(target_arch = "arm"))]
             let nv_enc = match &mp4_recording_config.codec {
                 strand_cam_remote_control::Mp4Codec::H264NvEnc(_opts) => {
                     // Now we know nvidia-encode is wanted. In the UI, users
@@ -147,6 +158,7 @@ fn create_writer<'a>(
             RawWriter::Mp4Writer(Box::new(mp4_writer::Mp4Writer::new(
                 mp4_file,
                 mp4_recording_config.clone(),
+                #[cfg(not(target_arch = "arm"))]
                 nv_enc,
             )?))
         }
@@ -199,6 +211,7 @@ pub(crate) fn writer_thread_loop(
     {
         // Load CUDA and nvidia-encode shared libs, but do not return error
         // (yet).
+        #[cfg(not(target_arch = "arm"))]
         let libs_result = nvenc::Dynlibs::new();
 
         let mut raw: Option<RawWriter<'_, File>> = None;
@@ -213,7 +226,12 @@ pub(crate) fn writer_thread_loop(
                     } else {
                         let wtr = thread_try!(
                             err_tx,
-                            create_writer(&libs_result, &recording_config, &mp4_path)
+                            create_writer(
+                                #[cfg(not(target_arch = "arm"))]
+                                &libs_result,
+                                &recording_config,
+                                &mp4_path,
+                            )
                         );
                         raw = Some(wtr);
                         raw.as_mut().unwrap()

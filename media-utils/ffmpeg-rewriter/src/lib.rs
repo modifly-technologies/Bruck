@@ -372,7 +372,12 @@ fn write_rewritten(sidecars: &Sidecars, mp4_cfg: Mp4RecordingConfig) -> Result<R
         sidecars.rewritten,
     );
     let fd = std::fs::File::create(&sidecars.rewritten)?;
-    let mut new_mp4 = mp4_writer::Mp4Writer::new(fd, mp4_cfg, None)?;
+    let mut new_mp4 = mp4_writer::Mp4Writer::new(
+        fd,
+        mp4_cfg,
+        #[cfg(not(target_arch = "arm"))]
+        None,
+    )?;
     let h264_src = frame_src.as_seekable_h264_source();
     new_mp4.set_first_sps_pps(h264_src.first_sps(), h264_src.first_pps());
 
